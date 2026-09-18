@@ -257,6 +257,11 @@ static int32_t reconnectWiFi()
                 WiFi.useStaticBuffers(true);
                 WiFi.mode(WIFI_STA);
 #endif
+#ifdef CONFIG_IDF_TARGET_ESP32C3
+                // 2026-09-19: C3 射频偏弱 ⇒ 默认功率下 AP 收不全认证帧 ⇒ AUTH_EXPIRE(reason2)
+                // 参考 meshtastic/firmware#7918 + 社区实践（降到 8.5dBm 解决）
+                WiFi.setTxPower(WIFI_POWER_15dBm);
+#endif
                 WiFi.begin(wifiName, wifiPsw);
             }
             isReconnecting = false;

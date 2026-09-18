@@ -592,6 +592,17 @@ class Screen : public concurrency::OSThread
 
 #endif
 
+#if CJK_FONT_ENABLED
+        // Let 3-byte UTF-8 sequences (CJK) pass through byte-for-byte. The patched
+        // OLEDDisplay::drawStringInternal() decodes them and looks the codepoint up in
+        // cjk_codes[]; returning 191 (¿) or 0 here would blank/garble them. Returning the
+        // byte unchanged is safe because ASCII (< 0x80) never collides with these leads.
+        if ((ch & 0xF0) == 0xE0) {
+            SKIPREST = false;
+            return (uint8_t)ch;
+        }
+#endif
+
         // If we already returned an unconvertable-character symbol for this unconvertable-character sequence, return NULs for the
         // rest of it
         if (SKIPREST)

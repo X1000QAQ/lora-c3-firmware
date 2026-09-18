@@ -86,8 +86,9 @@ class LGFX : public lgfx::LGFX_Device
 
             // Set the following only when the display is shifted with a driver with a variable number of pixels, such as the
             // ST7735 or ILI9163.
-            cfg.memory_width = TFT_WIDTH;   // Maximum width supported by the driver IC
-            cfg.memory_height = TFT_HEIGHT; // Maximum height supported by the driver IC
+            cfg.memory_width = 132;   // 2026-09-19 修复随机杂点：ST7735 真实 RAM 是 132x162，
+            cfg.memory_height = 162;  // 80x160 只是它的裁剪窗口；原写法把 RAM 当面板尺寸
+                                      // → 某些旋转下 colstart/rowstart 为负（int16 回绕）→ 杂点
             _panel_instance.config(cfg);
         }
 
@@ -1205,6 +1206,8 @@ TFTDisplay::~TFTDisplay()
 // Write the buffer to the display memory
 void TFTDisplay::display(bool fromBlank)
 {
+    // 2026-09-19 最终修法：每帧全量推送整行像素，但不清屏（不清屏=不闪）
+    const bool fullPush = true;
     if (fromBlank)
         tft->fillScreen(TFT_BLACK);
 
@@ -1229,7 +1232,7 @@ void TFTDisplay::display(bool fromBlank)
         y_byteMask = (1 << (y & 7));
 
         // Step 1: Do a quick scan of 8 rows together. This allows fast-forwarding over unchanged screen areas.
-        if (y_byteMask == 1) {
+        if (!fullPush && y_byteMask == 1) {
             if (!fromBlank) {
                 for (x = 0; x < displayWidth; x++) {
                     if (buffer[x + y_byteIndex] != buffer_back[x + y_byteIndex])
@@ -1249,19 +1252,7 @@ void TFTDisplay::display(bool fromBlank)
         }
 
         // Step 2: Scan each of the 8 rows individually. Find the first pixel in each row that needs updating
-        for (x_FirstPixelUpdate = 0; x_FirstPixelUpdate < displayWidth; x_FirstPixelUpdate++) {
-            isset = buffer[x_FirstPixelUpdate + y_byteIndex] & y_byteMask;
-
-            if (!fromBlank) {
-                // get src pixel in the page based ordering the OLED lib uses
-                dblbuf_isset = buffer_back[x_FirstPixelUpdate + y_byteIndex] & y_byteMask;
-                if (isset != dblbuf_isset) {
-                    break;
-                }
-            } else if (isset) {
-                break;
-            }
-        }
+        x_FirstPixelUpdate = 0; // 全量推送：起始列固定 0，不再扫描
 
         // Did we find a pixel that needs updating on this row?
         if (x_FirstPixelUpdate < displayWidth) {
@@ -1276,14 +1267,7 @@ void TFTDisplay::display(bool fromBlank)
                 isset = buffer[x + y_byteIndex] & y_byteMask;
                 linePixelBuffer[x] = isset ? colorTftMesh : colorTftBlack;
 
-                if (!fromBlank) {
-                    dblbuf_isset = buffer_back[x + y_byteIndex] & y_byteMask;
-                    if (isset != dblbuf_isset) {
-                        x_LastPixelUpdate = x;
-                    }
-                } else if (isset) {
-                    x_LastPixelUpdate = x;
-                }
+                x_LastPixelUpdate = x; // 全量推送：整行都推
             }
 #if defined(HACKADAY_COMMUNICATOR)
             tft->draw16bitBeRGBBitmap(x_FirstPixelUpdate, y, &linePixelBuffer[x_FirstPixelUpdate],

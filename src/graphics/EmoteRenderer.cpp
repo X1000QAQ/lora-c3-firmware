@@ -14,6 +14,10 @@ static inline int getStringWidth(OLEDDisplay *display, const char *text, size_t 
 {
 #if defined(OLED_UA) || defined(OLED_RU)
     return display->getStringWidth(text, len, true);
+#elif CJK_FONT_ENABLED
+    // Let the patched getStringWidth() measure CJK codepoints as one 12px glyph instead of
+    // counting their 3 UTF-8 bytes separately, otherwise Chinese text is mis-aligned.
+    return display->getStringWidth(text, len, true);
 #else
     (void)len;
     return display->getStringWidth(text);

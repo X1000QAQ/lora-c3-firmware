@@ -503,8 +503,40 @@ std::string sanitizeString(const std::string &input)
     replaceAll(s, "\xC2\xA0", " "); // U+00A0
 
     // Now do your original sanitize pass over the normalized string.
-    for (unsigned char uc : s) {
+    for (size_t i = 0; i < s.size(); ++i) {
+        unsigned char uc = static_cast<unsigned char>(s[i]);
         char c = static_cast<char>(uc);
+
+#if CJK_FONT_ENABLED
+        // Pass multi-byte UTF-8 sequences through untouched, otherwise every byte of a
+        // CJK character (>= 0x80) would be flattened into a single inverted question mark.
+        // cjkFind() in the patched OLEDDisplay looks the codepoint up in the 3776-glyph
+        // GB2312 font, so the raw bytes must reach it intact.
+        size_t seqLen = 0;
+        if ((uc & 0xE0) == 0xC0)
+            seqLen = 2;
+        else if ((uc & 0xF0) == 0xE0)
+            seqLen = 3;
+        else if ((uc & 0xF8) == 0xF0)
+            seqLen = 4;
+
+        if (seqLen > 1 && i + seqLen <= s.size()) {
+            bool valid = true;
+            for (size_t k = 1; k < seqLen; ++k) {
+                if ((static_cast<unsigned char>(s[i + k]) & 0xC0) != 0x80) {
+                    valid = false;
+                    break;
+                }
+            }
+            if (valid) {
+                output.append(s, i, seqLen);
+                i += seqLen - 1;
+                inReplacement = false;
+                continue;
+            }
+        }
+#endif
+
         if (std::isalnum(uc) || isAllowedPunctuation(c)) {
             output += c;
             inReplacement = false;
