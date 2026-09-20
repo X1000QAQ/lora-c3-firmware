@@ -45,7 +45,15 @@ cd <repo>
 - 基于 **Meshtastic firmware**（**GPLv3**）✓ ⇒ 本分支同样以 **GPLv3** 发布 ✓
   （见仓库根 `LICENSE`；上游原文见 `README-upstream.md`）
 - 上游项目：https://github.com/meshtastic/firmware
-- 硬件设计与思路上受一位热爱 LoRa 的朋友启发（其自制板固件为闭源，**未包含在本仓库** ✓）
+
+### 特别致谢
+
+- 本项目适配的硬件 **Lora_C3_v1.4**（ESP32-C3 + E22-400M22S + ST7735S）由
+  **arkbird**（闲鱼）**自行设计并免费分享** ✓
+  —— 他也是 LoRa 爱好者，把自制的 **S3（T-Deck）** 与 **C3（本板）** 两套小板
+  连同配套资料一起分享给了我 ✓
+- ⚠️ arkbird 提供的**原始固件为闭源** ✗ ⇒ **未包含在本仓库** ✓
+  （本仓库只包含基于 Meshtastic 开源部分 + 我自己的修改 ✓）
 
 ## 免责
 
