@@ -1,39 +1,52 @@
-<div align="center" markdown="1">
+# Lora_C3_v1.4（ESP32-C3）自定义固件 —— 中文显示版
 
-<img src=".github/meshtastic_logo.png" alt="Meshtastic Logo" width="80"/>
-<h1>Meshtastic Firmware</h1>
+> 基于 **Meshtastic firmware v2.7.26** 的**个人定制分支** ✓
+> 目标硬件：**Lora_C3_v1.4** 自制小板（ESP32-C3 + E22-400M22S + ST7735S 0.96" 屏）
 
-![GitHub release downloads](https://img.shields.io/github/downloads/meshtastic/firmware/total)
-[![CI](https://img.shields.io/github/actions/workflow/status/meshtastic/firmware/main_matrix.yml?branch=master&label=actions&logo=github&color=yellow)](https://github.com/meshtastic/firmware/actions/workflows/ci.yml)
-[![CLA assistant](https://cla-assistant.io/readme/badge/meshtastic/firmware)](https://cla-assistant.io/meshtastic/firmware)
-[![Fiscal Contributors](https://opencollective.com/meshtastic/tiers/badge.svg?label=Fiscal%20Contributors&color=deeppink)](https://opencollective.com/meshtastic/)
-[![Vercel](https://img.shields.io/static/v1?label=Powered%20by&message=Vercel&style=flat&logo=vercel&color=000000)](https://vercel.com?utm_source=meshtastic&utm_campaign=oss)
+## 这个分支做了什么
 
-<a href="https://trendshift.io/repositories/5524" target="_blank"><img src="https://trendshift.io/api/badge/repositories/5524" alt="meshtastic%2Ffirmware | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+| 方向 | 内容 |
+|---|---|
+| **中文显示** | 接入 CJK 点阵渲染（14×14 · GB2312 全字库 7447 字 ✓）|
+| **中英混排换行** | 修复"一个汉字被断成两半" ✗：原换行按**字节**循环（中文是 3 字节 UTF-8）⇒ 改为**整字符边界**断行 ✓（英文仍优先断在空格 ✓）|
+| **显存/分区** | 全字库 208KB 装不下默认 app 槽 ⇒ 改用 no-ota 分区表把 app 扩到 `0x2F0000` ✓ |
+| **显示修正** | 反色修正（`TFT_INVERT false` ✓）· 屏偏移修正（顶部花屏 ✗）· 字模尺寸与行距成套一致 ✓ |
+| **稳定** | flash 模式必须 `dout` ✓（否则 LittleFS 挂载/格式化全失败 ✗）；降发射功率治 WiFi `AUTH_EXPIRE` ✓ |
+| **开箱即用** | CN 区域 / LONG_FAST / 频点1 / 时区 CST-8 / 位置精度 32 ✓ |
 
-</div>
+## 硬件（本分支适配的板子）
 
-</div>
+- ESP32-C3 核心板 + 亿百特 **E22-400M22S**（LoRa；**必须**由 DIO3 供 1.8V 给 TCXO ✓ 否则电台不起振）
+- ST7735S 0.96" **160×80** 屏（与电台**共用 SPI** 线 ✗ 需注意）
+- 无 GPS（预留 5Pin 接口）· **无 I²C 器件**（无 RTC/传感器 ✓）
+- 按键 BOOT(GPIO9) · 电池检测 GPIO2 · 背光 GPIO13
 
-<div align="center">
-	<a href="https://meshtastic.org">Website</a>
-	-
-	<a href="https://meshtastic.org/docs/">Documentation</a>
-</div>
+## 构建
 
-## Overview
+```bash
+cd <repo>
+/home/x1000qaq/.pio-venv/bin/pio run -e lora-c3     # 或用你本机的 pio
+```
 
-This repository contains the official device firmware for Meshtastic, an open-source LoRa mesh networking project designed for long-range, low-power communication without relying on internet or cellular infrastructure. The firmware supports various hardware platforms, including ESP32, nRF52, RP2040/RP2350, and Linux-based devices.
+产物：`.pio/build/lora-c3/firmware-lora-c3-<版本>.<git短哈希>.bin`
+⚠️ 构建目录里同时有 `.factory.bin` / `littlefs-*.bin` ⇒ 取产物**按名字精确匹配**，别用 `head -1` ✗
 
-Meshtastic enables text messaging, location sharing, and telemetry over a decentralized mesh network, making it ideal for outdoor adventures, emergency preparedness, and remote operations.
+## 烧录（★ 与本项目的 S3 线**完全不同** ✗）
 
-### Get Started
+```
+① 只写 0x0（bootloader + 分区表 + app）+ 可选 littlefs
+② 【绝对不要】erase-flash / 全擦 ✗
+      ⇒ 全擦会清空 NVS 配置 —— 这是历次"黑屏"的真正共同点 ✓
+③ 本板串口走 C3 原生 USB-Serial/JTAG（非 CH340 ✗）
+```
 
-- 🔧 **[Building Instructions](https://meshtastic.org/docs/development/firmware/build)** – Learn how to compile the firmware from source.
-- ⚡ **[Flashing Instructions](https://meshtastic.org/docs/getting-started/flashing-firmware/)** – Install or update the firmware on your device.
+## 许可与致谢
 
-Join our community and help improve Meshtastic! 🚀
+- 基于 **Meshtastic firmware**（**GPLv3**）✓ ⇒ 本分支同样以 **GPLv3** 发布 ✓
+  （见仓库根 `LICENSE`；上游原文见 `README-upstream.md`）
+- 上游项目：https://github.com/meshtastic/firmware
+- 硬件设计与思路上受一位热爱 LoRa 的朋友启发（其自制板固件为闭源，**未包含在本仓库** ✓）
 
-## Stats
+## 免责
 
-![Alt](https://repobeats.axiom.co/api/embed/8025e56c482ec63541593cc5bd322c19d5c0bdcf.svg "Repobeats analytics image")
+个人自用与学习目的 ✓ 请遵守当地无线电法规 ✓
