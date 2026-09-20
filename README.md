@@ -31,14 +31,23 @@ cd <repo>
 产物：`.pio/build/lora-c3/firmware-lora-c3-<版本>.<git短哈希>.bin`
 ⚠️ 构建目录里同时有 `.factory.bin` / `littlefs-*.bin` ⇒ 取产物**按名字精确匹配**，别用 `head -1` ✗
 
-## 烧录（★ 与本项目的 S3 线**完全不同** ✗）
+## 烧录（★ 与本项目的 S3 线**完全不同**）
 
+**三种方式**（预编译固件见 [Releases](https://github.com/X1000QAQ/lora-c3-firmware/releases)）：
+
+| 场景 | 用哪个 | 偏移 |
+|---|---|---|
+| **常规升级** | 整片 `…factory.bin` ★ 本板从一开始就写 `0x0` | `0x0` |
+| **分件写** | `bootloader.bin` → `0x0`，`partitions.bin` → `0x8000`，应用 → `0x10000` | 各自偏移 |
+| **只重写分区表** | `partitions.bin` | `0x8000` |
+
+```bash
+# 常规（推荐）
+python -m esptool --chip esp32c3 --port <COM> write-flash 0x0 <factory.bin>
 ```
-① 只写 0x0（bootloader + 分区表 + app）+ 可选 littlefs
-② 【绝对不要】erase-flash / 全擦 ✗
-      ⇒ 全擦会清空 NVS 配置 —— 这是历次"黑屏"的真正共同点 ✓
-③ 本板串口走 C3 原生 USB-Serial/JTAG（非 CH340 ✗）
-```
+
+⚠️ **【绝对不要】erase-flash / 全擦** —— 会清空 NVS 配置，这正是历次"黑屏"的共同原因
+⚠️ 本板串口走 **C3 原生 USB-Serial/JTAG**（非 CH340）
 
 ## 许可与致谢
 
