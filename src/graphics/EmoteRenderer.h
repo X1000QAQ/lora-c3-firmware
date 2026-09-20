@@ -17,6 +17,7 @@ struct LineMetrics {
     int width;
     int tallestHeight;
     bool hasEmote;
+    bool hasCjk; // 行内含中文（3 字节 UTF-8）⇒ 调用方行距必须 ≥ CJK_H
 };
 
 size_t utf8CharLen(uint8_t c);

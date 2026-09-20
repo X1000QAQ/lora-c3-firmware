@@ -1,7 +1,17 @@
-# 4MB flash 布局：给 app 更大空间（对齐商家固件的完整功能集：webserver + paxcounter + telemetry…）
-# 代价：没有第二个 app 槽 ⇒ 无线 OTA 用不了（我们一直用串口刷，无所谓）
+# Lora_C3_v1.4 (4MB flash) —— app 扩容版
+#
+# 为什么这么改（2026-09-19）：
+#   原表（仓库根 partition-table.csv）app 只有 0x250000 = 2,424,832 B，
+#   中文字库扩到 GB2312 全集（7447 字 @14x14 = 208KB）后 app 到 2,500,864 B ⇒
+#   超分区 ⇒ 引导程序放不下 ⇒ **只有 ROM 横幅的复位循环**。
+#   这里把**没用到的 OTA 槽**（原表 flashApp = ota_1, 0x260000/0x0A0000）并进 app：
+#     app 0x010000 + 0x2F0000 = 0x300000 ⇒ 上限 3,080,192 B（+655 KB）
+#   ★ spiffs 偏移**保持 0x300000 不变** ⇒ 文件系统/NVS/配置全不受影响，不需要重新格式化。
+#   ⚠️ 代价：只剩一个 app 槽（ota_0）⇒ 无线 OTA 用不了（本板一直只用串口刷，无所谓）。
+#   ⚠️ 固件里 MeshtasticOTA.cpp 的 ota_1 查找会返回 NULL（OTA 加载器流程不可用）；串口刷机不受影响。
+#
 # Name,   Type, SubType, Offset,  Size, Flags
 nvs,      data, nvs,     0x009000, 0x005000,
 otadata,  data, ota,     0x00e000, 0x002000,
-app,      app,  ota_0,   0x010000, 0x2E0000,
-spiffs,   data, spiffs,  0x2F0000, 0x110000,
+app,      app,  ota_0,   0x010000, 0x2F0000,
+spiffs,   data, spiffs,  0x300000, 0x100000,

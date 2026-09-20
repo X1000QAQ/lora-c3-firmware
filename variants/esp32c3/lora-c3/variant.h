@@ -41,7 +41,9 @@
 #define TFT_HEIGHT 160
 #define TFT_OFFSET_X 26   // 标准 80x160 横屏（rowstart=26）
 #define TFT_OFFSET_Y 1    // 标准值（colstart=1）
-#define TFT_INVERT true // 颜色正常（用户已验证 true/false 都能亮；黑屏真因是全擦清空 NVS）
+#define TFT_INVERT false // ★2026-09-19 10:0x 反色修复：true 时黑底被反成白底（用户实测「背景是白色的」）。
+                          // 对照依据：同款 0.96" ST7735 上游模板 variants/nrf52840/heltec_mesh_node_t096 用 false；
+                          // 注意 true/false 都能点亮，所以之前误判成「true 颜色正常」（黑屏真因是全擦清空 NVS）。
 
 // ---------------------------------------------------------------- 电台 E22-400M22S (SX1268)
 // 2026-09-18 08:12 单变量测试：本板模块是 E22-400M22S(SX1268 内核)，RadioLib 会校验型号

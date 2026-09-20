@@ -839,41 +839,56 @@ std::vector<std::string> generateLines(OLEDDisplay *display, const char *headerS
         lines.push_back(std::string(headerStr));
     }
 
-    std::string line, word;
-    for (int i = 0; messageBuf[i]; ++i) {
-        char ch = messageBuf[i];
-        if ((unsigned char)messageBuf[i] == 0xE2 && (unsigned char)messageBuf[i + 1] == 0x80 &&
-            (unsigned char)messageBuf[i + 2] == 0x99) {
-            ch = '\''; // plain apostrophe
-            i += 2;    // skip over the extra UTF-8 bytes
+    // ★ 2026-09-19 修复"半个汉字被拆到两行"：
+    //   原来按**字节**累积（for i++ / word += ch），而中文是 3 字节 UTF-8、emoji 4 字节；
+    //   只累到半个字时就会触发宽度判断 ⇒ 行尾留半个字、行首接半个字，根本无法辨认。
+    //   现在按**整字符**取用，并在字符边界处断行（英文仍优先断在空格处，保持按词换行）。
+    if (!messageBuf || textWidth <= 0)
+        return lines;
+
+    auto widthOf = [&](const std::string &s) -> int {
+        return static_cast<int>(graphics::UIRenderer::measureStringWithEmotes(display, s.c_str()));
+    };
+
+    std::string buf; // 当前行已累积的内容
+    const size_t len = strlen(messageBuf);
+
+    for (size_t i = 0; i < len;) {
+        const size_t charLen = graphics::EmoteRenderer::utf8CharLen(static_cast<uint8_t>(messageBuf[i]));
+        const size_t take = (charLen == 0 || i + charLen > len) ? 1 : charLen;
+        std::string ch(messageBuf + i, take);
+        i += take;
+
+        if (ch == "\xE2\x80\x99") // U+2019 右单引号 → 普通撇号（沿用既有特例）
+            ch = "'";
+
+        if (ch == "\n") {
+            if (!buf.empty())
+                lines.push_back(buf);
+            buf.clear();
+            continue;
         }
-        if (ch == '\n') {
-            if (!word.empty())
-                line += word;
-            if (!line.empty())
-                lines.push_back(line);
-            line.clear();
-            word.clear();
-        } else if (ch == ' ') {
-            line += word + ' ';
-            word.clear();
+
+        std::string candidate = buf + ch;
+        if (widthOf(candidate) <= textWidth) {
+            buf.swap(candidate);
+            continue;
+        }
+
+        // 放不下 ⇒ 断行：优先断在最后一个空格（英文按词），中文没空格 ⇒ 逐字断
+        const size_t spacePos = buf.rfind(' ');
+        if (spacePos != std::string::npos && spacePos > 0) {
+            lines.push_back(buf.substr(0, spacePos));
+            buf = buf.substr(spacePos + 1) + ch;
         } else {
-            word += ch;
-            std::string test = line + word;
-            uint16_t strWidth = graphics::UIRenderer::measureStringWithEmotes(display, test.c_str());
-            if (strWidth > textWidth) {
-                if (!line.empty())
-                    lines.push_back(line);
-                line = word;
-                word.clear();
-            }
+            if (!buf.empty())
+                lines.push_back(buf);
+            buf = ch;
         }
     }
 
-    if (!word.empty())
-        line += word;
-    if (!line.empty())
-        lines.push_back(line);
+    if (!buf.empty())
+        lines.push_back(buf);
 
     return lines;
 }
@@ -907,9 +922,19 @@ std::vector<int> calculateLineHeights(const std::vector<std::string> &lines, con
         if (isHeaderVec[idx]) {
             // Header line spacing
             lineHeight = baseHeight + HEADER_UNDERLINE_PIX + HEADER_UNDERLINE_GAP;
+            if (lineMetrics[idx].hasCjk) // 中文作者名/标题：行高必须 ≥ 字模格高
+                lineHeight = std::max(lineHeight, static_cast<int>(CJK_H));
         } else {
             // Base spacing for normal lines
             int desiredBody = baseHeight + BODY_LINE_LEADING;
+
+#if CJK_FONT_ENABLED
+            // ★ 2026-09-19 修复中文多行重叠：正文默认步进是 FONT_HEIGHT_SMALL + (-4) ≈ 9px，
+            //   而中文字模有 CJK_H 行高 ⇒ 行与行直接叠在一起（用户实测"超过两行会重叠"）。
+            //   行内含中文时必须抬到字模格高；纯 ASCII 行保持原样，不动英文排版。
+            if (lineMetrics[idx].hasCjk)
+                desiredBody = std::max(desiredBody, static_cast<int>(CJK_H));
+#endif
 
             if (hasEmote) {
                 // Emote line: add overshoot + bottom padding

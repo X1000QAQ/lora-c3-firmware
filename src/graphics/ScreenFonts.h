@@ -1,5 +1,7 @@
 #pragma once
 
+#include "graphics/CjkGlyph.h" // 中文字模格尺寸 + LINE_HEIGHT_CJK()（行距必须 ≥ 字模格高）
+
 #ifdef OLED_PL
 #include "graphics/fonts/OLEDDisplayFontsPL.h"
 #endif
@@ -120,3 +122,6 @@
 #define FONT_HEIGHT_SMALL _fontHeight(FONT_SMALL)
 #define FONT_HEIGHT_MEDIUM _fontHeight(FONT_MEDIUM)
 #define FONT_HEIGHT_LARGE _fontHeight(FONT_LARGE)
+
+// 含中文的文本行：行距下限 = 中文字模格高（见 CjkGlyph.h）
+#define FONT_HEIGHT_SMALL_CJK LINE_HEIGHT_CJK(FONT_HEIGHT_SMALL)

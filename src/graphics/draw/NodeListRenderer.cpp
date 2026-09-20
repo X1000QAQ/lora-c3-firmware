@@ -502,7 +502,7 @@ void drawNodeListScreen(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t
                         EntryRenderer renderer, NodeExtrasRenderer extras, float headingRadian, double lat, double lon)
 {
     const int COMMON_HEADER_HEIGHT = FONT_HEIGHT_SMALL - 1;
-    const int rowYOffset = FONT_HEIGHT_SMALL - 3;
+    const int rowYOffset = LINE_HEIGHT_CJK(FONT_HEIGHT_SMALL - 3);// 节点名可能是中文：行距 ≥ 字模格高
     bool locationScreen = false;
 
     if (strcmp(title, "Bearings") == 0)
@@ -586,7 +586,7 @@ void drawNodeListScreen(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t
         if (extras)
             extras(display, node, xPos, yPos, columnWidth, headingRadian, lat, lon);
 
-        lastNodeY = max(lastNodeY, yPos + FONT_HEIGHT_SMALL);
+        lastNodeY = max(lastNodeY, yPos + LINE_HEIGHT_CJK(FONT_HEIGHT_SMALL));
         yOffset += rowYOffset;
         shownCount++;
         rowCount++;

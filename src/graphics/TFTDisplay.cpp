@@ -36,6 +36,35 @@ class LGFX : public lgfx::LGFX_Device
     lgfx::Light_PWM _light_instance;
 
   public:
+    // 2026-09-19 顶部花屏修复：ST7735S 的 GRAM 是 132x162，可见玻璃只有 80x160，
+    // 窗口之外那一圈 RAM 上电后是随机值。本固件每帧只写窗口内的像素（全量推送也只覆盖
+    // 160x80），永远擦不到那一圈；一旦可见区压到它（本板实测顶部露一条花屏，厂商固件同样有），
+    // 就永远擦不掉。⇒ 开机时临时把面板当作整片 RAM，用黑清一遍，再切回正常几何。
+    void clearFullRam(void)
+    {
+        auto cfg = _panel_instance.config();
+        auto pw = cfg.panel_width;
+        auto ph = cfg.panel_height;
+        auto ox = cfg.offset_x;
+        auto oy = cfg.offset_y;
+
+        cfg.panel_width = 132;  // 整片 GRAM
+        cfg.panel_height = 162;
+        cfg.offset_x = 0;
+        cfg.offset_y = 0;
+        cfg.offset_rotation = 0;
+        _panel_instance.config(cfg);
+        setRotation(0); // clearClipRect() 会把裁剪区放到面板整幅大小
+        fillScreen(TFT_BLACK);
+
+        cfg.panel_width = pw; // 恢复本变体的几何
+        cfg.panel_height = ph;
+        cfg.offset_x = ox;
+        cfg.offset_y = oy;
+        _panel_instance.config(cfg);
+        setRotation(3);
+    }
+
     LGFX(void)
     {
         {
@@ -1501,6 +1530,12 @@ bool TFTDisplay::connect()
     tft->setRotation(3); // Orient horizontal and wide underneath the silkscreen name label
 #endif
     tft->fillScreen(TFT_BLACK);
+
+#if defined(ST7735S) && !defined(ARCH_PORTDUINO)
+    // 见 LGFX::clearFullRam() 的说明：清掉可见窗口之外那圈 GRAM（顶部花屏的根因）
+    tft->clearFullRam();
+    tft->fillScreen(TFT_BLACK);
+#endif
 
     if (this->linePixelBuffer == NULL) {
         this->linePixelBuffer = (uint16_t *)malloc(sizeof(uint16_t) * displayWidth);

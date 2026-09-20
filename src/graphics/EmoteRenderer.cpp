@@ -1,6 +1,7 @@
 #include "configuration.h"
 #if HAS_SCREEN
 
+#include "graphics/CjkGlyph.h" // CJK_H + LINE_HEIGHT_CJK()（中文字模格比 ASCII 小字体高）
 #include "graphics/EmoteRenderer.h"
 #include <algorithm>
 #include <cstring>
@@ -191,7 +192,7 @@ static LineMetrics analyzeLineInternal(OLEDDisplay *display, const char *line, s
                                        const Emote *emoteSet, int emoteCount, int emoteSpacing)
 {
     // Scan once to collect width and tallest emote for this line.
-    LineMetrics metrics{0, fallbackHeight, false};
+    LineMetrics metrics{0, fallbackHeight, false, false};
     if (!line)
         return metrics;
 
@@ -214,6 +215,14 @@ static LineMetrics analyzeLineInternal(OLEDDisplay *display, const char *line, s
         }
 
         const size_t charLen = utf8CharLen(static_cast<uint8_t>(line[i]));
+#if CJK_FONT_ENABLED
+        // 中文（3 字节 UTF-8）字模比 ASCII 小字体高 ⇒ 本行高度按中文字模格算，
+        // 否则调用方（消息列表等）按 ASCII 行高排版，会把字的下半部分盖掉。
+        if (charLen == 3 && (static_cast<uint8_t>(line[i]) & 0xF0) == 0xE0) {
+            metrics.hasCjk = true;
+            metrics.tallestHeight = std::max(metrics.tallestHeight, static_cast<int>(CJK_H));
+        }
+#endif
         if (display)
             metrics.width += getUtf8ChunkWidth(display, line + i, charLen);
         i += charLen;
