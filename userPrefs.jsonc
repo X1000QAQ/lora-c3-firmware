@@ -64,5 +64,8 @@
   "USERPREFS_LORACONFIG_CHANNEL_NUM": "1",
   "USERPREFS_NETWORK_WIFI_ENABLED": "false",
   // "USERPREFS_NETWORK_IPV6_ENABLED": "1",
-  "USERPREFS_TZ_STRING": "CST-8"
+  "USERPREFS_TZ_STRING": "CST-8",
+  // 本分支默认：闲置 30 秒熄屏（省电 / 延长续航）—— 由 NodeDB.cpp 的 USERPREFS_DISPLAY_SCREEN_ON_SECS 消费
+  // ⚠️ 只对 NVS 里还没有该字段的设备生效（现役设备需 --set display.screen_on_secs 30，或擦配置区）
+  "USERPREFS_DISPLAY_SCREEN_ON_SECS": "30"
 }

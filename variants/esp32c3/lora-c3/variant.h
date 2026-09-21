@@ -88,7 +88,12 @@
 //             用户确认电阻已焊，且当前无假报充电现象
 #define BATTERY_PIN 2
 #define ADC_CHANNEL ADC1_GPIO2_CHANNEL
-#define ADC_MULTIPLIER 2.0
+// 2026-09-21 校准：2.0 → 2.017
+//   依据：同一状态下的【万用表 4.145V vs 屏幕 4.11V】⇒ 比值 1.00852 ⇒ 2.0 × 1.00852 = 2.017
+//   ⚠️ 比值与“满不满”无关（只补偿分压电阻 1% 容差 / ADC 刻度），所以那一次并非满电也能用 ✓
+//   真满电静置 = 4.180V（两块电池万用表实测）—— 那是【阈值】的依据，见 src/power.h 的 OCV_ARRAY
+//   注意：仍可用运行时偏好覆盖（power.adc_multiplier_override，见 Power.cpp:320）
+#define ADC_MULTIPLIER 2.017
 
 // ---------------------------------------------------------------- GPS（选配 ATGM336H，5P 排针 VCC/GND/TX/RX/PPS）
 // 引脚：暂定 RX=21（ESP 收 ← 模块 TX）/ TX=20（ESP 发 → 模块 RX）

@@ -819,7 +819,13 @@ void NodeDB::initConfigIntervals()
     config.power.sds_secs = default_sds_secs;
     config.power.wait_bluetooth_secs = default_wait_bluetooth_secs;
 
+#ifdef USERPREFS_DISPLAY_SCREEN_ON_SECS
+    // 本分支默认：闲置 N 秒熄屏（userPrefs.jsonc 里配，当前 30s）—— 省电、延长续航 ✓
+    // 上游默认是 600s（Default.h 的 default_screen_on_secs）
+    config.display.screen_on_secs = USERPREFS_DISPLAY_SCREEN_ON_SECS;
+#else
     config.display.screen_on_secs = default_screen_on_secs;
+#endif
 
 #if defined(USE_POWERSAVE)
     config.power.is_power_saving = true;
