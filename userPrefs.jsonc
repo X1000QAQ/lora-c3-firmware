@@ -62,6 +62,13 @@
   "USERPREFS_CONFIG_LORA_REGION": "meshtastic_Config_LoRaConfig_RegionCode_CN",
   "USERPREFS_LORACONFIG_MODEM_PRESET": "meshtastic_Config_LoRaConfig_ModemPreset_LONG_FAST",
   "USERPREFS_LORACONFIG_CHANNEL_NUM": "1",
+  // ★ 2026-09-21 开箱即用：主频道位置精度 32（不量化=精确）+ 关掉 MQTT 上下行
+  //   原因：库默认 precision=13 ⇒ 位置被量化到 ~5.8km 网格；
+  //   而 precision=1（商家 NVS 里的值）会直接把经纬度算成 ±107.3741824 ✗
+  //   uplink/downlink 默认在结构体里就是 false，这里显式写死防上游改默认值 ✗
+  "USERPREFS_CHANNEL_0_PRECISION": "32",
+  "USERPREFS_CHANNEL_0_UPLINK_ENABLED": "false",
+  "USERPREFS_CHANNEL_0_DOWNLINK_ENABLED": "false",
   "USERPREFS_NETWORK_WIFI_ENABLED": "false",
   // "USERPREFS_NETWORK_IPV6_ENABLED": "1",
   "USERPREFS_TZ_STRING": "CST-8",
