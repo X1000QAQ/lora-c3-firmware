@@ -101,9 +101,12 @@
 //   PPS 是孤立焊盘、没接到 ESP（Gerber 已证）
 // ⚠️ 未实锤：若日志显示 GPS 没数据/没卫星，说明这对引脚（或 RX/TX 方向）要换
 // 对齐商家固件：GPS 功能照开（模块没插时它会报 “No GNSS Module”，跟原厂一样）
-#define HAS_GPS 0
-#undef GPS_RX_PIN
-#undef GPS_TX_PIN
-// #define HAS_GPS 1
-// #define GPS_RX_PIN 21
-// #define GPS_TX_PIN 20
+// ★ 2026-09-21：用户已焊好 5P 母座，要实测 GPS ⇒ 打开 HAS_GPS 并给出引脚
+//   注意：ESP32 平台默认本身就是 HAS_GPS=1（src/platform/esp32/architecture.h:22），
+//   之前是本变体显式写 0 + #undef 引脚 ⇒ GPS 驱动虽被编译（GPS.cpp.o 生成）
+//   但无人引用、链接时被 GC 裁掉 ⇒ 旧固件里 PCA/PMTK/GNSS/L76K 等字符串 0 命中
+#define HAS_GPS 1
+#define GPS_RX_PIN 21   // ESP 的 RX ← 模块的 TX（板侧丝印 “TX” 那一脚）
+#define GPS_TX_PIN 20   // ESP 的 TX → 模块的 RX
+// 不定义 GPS_DEFAULT_NOT_PRESENT ⇒ 默认 gps_mode 落到 ENABLED（NodeDB.cpp:677-686）
+// 波特率用默认 9600（ATGM336H 默认，探测第一档就中）
